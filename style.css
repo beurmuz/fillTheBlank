@@ -1,0 +1,24 @@
+.controls {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.controls .controls__colors {
+    width: 300px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.controls__colors .controls__color {
+    width: 50px;
+    height: 50px;
+    border-radius: 50px;
+    margin: 2px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08); 
+    
+}

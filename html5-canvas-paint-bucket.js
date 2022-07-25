@@ -1,0 +1,329 @@
+/*jslint browser: true */
+
+'use strict';
+let paintBucketApp = (function () {
+	let context,
+		canvasWidth = 490,
+		canvasHeight = 220,
+		colorOrange = { // 235, 111, 14
+			r: 235,
+			g: 111,
+			b: 14
+		},
+		colorGreen = {
+			r: 101,
+			g: 155,
+			b: 65
+		},
+		colorYellow = {
+			r: 255,
+			g: 207,
+			b: 51
+		},
+		colorBrown = {
+			r: 152,
+			g: 105,
+			b: 40
+		},
+		curColor = colorOrange, // 첫 시작 색깔 
+		outlineImage = new Image(), // 누끼 이미지 (선만 딴거)
+		swatchImage = new Image(), // 팔레트 동그라미 선
+		backgroundImage = new Image(), // 빈 png 
+		swatchStartX = 18, // 얘 머니
+		swatchStartY = 19, // 얜 뭐니?
+		swatchImageWidth = 93, // paint-outline 이미지의 가로 크기, r가로가 잘리기 때문에 18 + 93을 한 위치는 image 칸(사각형)의 시작 위치와 같음
+		swatchImageHeight = 46, // paint-outline 이미지의 세로 크기 
+		drawingAreaX = 111, // 이건 머니?????? 그림 그리는 영역의 X좌표?
+		drawingAreaY = 11, // 얘는 또 머니???? 그림 그리는 영역의 y좌표???
+		drawingAreaWidth = 267, // watermelon-duck 이미지의 가로 크기
+		drawingAreaHeight = 200, // watermelon-duck 이미지의 세로 크기 
+		colorLayerData, // RGBA의 값을 가진 객체 
+		outlineLayerData, // RGBA의 값을 가진 객체
+		totalLoadResources = 3, // 총 로드해야할 리소스(이미지) 개수는 3
+		curLoadResNum = 0, // 로드된 이미지 수 카운트 
+
+		// Clears the canvas.
+		clearCanvas = function () {
+
+			context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+		},
+
+		// Draw a color swatch (컬러 팔레트)
+		drawColorSwatch = function (color, x, y) {
+
+			context.beginPath();
+			context.arc(x + 46, y + 23, 18, 0, Math.PI * 2, true); // 컨버스에 팔레트 테두리(원) 그리기
+			context.closePath();
+			context.fillStyle = "rgb(" + color.r + "," + color.g + "," + color.b + ")";
+			context.fill();
+
+			if (curColor === color) {
+				context.drawImage(swatchImage, 0, 0, 59, swatchImageHeight, x, y, 59, swatchImageHeight);
+			} else {
+				context.drawImage(swatchImage, x, y, swatchImageWidth, swatchImageHeight);
+			}
+		},
+
+		// Draw the elements on the canvas
+		redraw = function () {
+
+			let locX,
+				locY;
+
+			// Make sure required resources are loaded before redrawing
+			if (curLoadResNum < totalLoadResources) { // 
+				return;
+			}
+
+			clearCanvas();
+
+			// Draw the current state of the color layer to the canvas
+			context.putImageData(colorLayerData, 0, 0);
+
+			// Draw the background
+			context.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight);
+
+			// Draw the color swatches (컬러 팔레트 부분)
+			locX = 52;
+			locY = 19;
+			drawColorSwatch(colorOrange, locX, locY);
+
+			locY += 46;
+			drawColorSwatch(colorGreen, locX, locY);
+
+			locY += 46;
+			drawColorSwatch(colorYellow, locX, locY);
+
+			locY += 46;
+			drawColorSwatch(colorBrown, locX, locY);
+
+			// Draw the outline image on top of everything. We could move this to a separate 
+			//   canvas so we did not have to redraw this everyime.
+			context.drawImage(outlineImage, drawingAreaX, drawingAreaY, drawingAreaWidth, drawingAreaHeight);
+		},
+
+		matchOutlineColor = function (r, g, b, a) {
+
+			return (r + g + b < 100 && a === 255);
+		},
+
+		matchStartColor = function (pixelPos, startR, startG, startB) {
+
+			let r = outlineLayerData.data[pixelPos],
+				g = outlineLayerData.data[pixelPos + 1],
+				b = outlineLayerData.data[pixelPos + 2],
+				a = outlineLayerData.data[pixelPos + 3];
+
+			// If current pixel of the outline image is black
+			if (matchOutlineColor(r, g, b, a)) {
+				return false;
+			}
+
+			r = colorLayerData.data[pixelPos];
+			g = colorLayerData.data[pixelPos + 1];
+			b = colorLayerData.data[pixelPos + 2];
+
+			// If the current pixel matches the clicked color
+			if (r === startR && g === startG && b === startB) {
+				return true;
+			}
+
+			// If current pixel matches the new color
+			if (r === curColor.r && g === curColor.g && b === curColor.b) {
+				return false;
+			}
+
+			return true;
+		},
+
+		colorPixel = function (pixelPos, r, g, b, a) {
+
+			colorLayerData.data[pixelPos] = r;
+			colorLayerData.data[pixelPos + 1] = g;
+			colorLayerData.data[pixelPos + 2] = b;
+			colorLayerData.data[pixelPos + 3] = a !== undefined ? a : 255;
+		},
+
+		floodFill = function (startX, startY, startR, startG, startB) {
+
+			let newPos,
+				x,
+				y,
+				pixelPos,
+				reachLeft,
+				reachRight,
+				drawingBoundLeft = drawingAreaX,
+				drawingBoundTop = drawingAreaY,
+				drawingBoundRight = drawingAreaX + drawingAreaWidth - 1,
+				drawingBoundBottom = drawingAreaY + drawingAreaHeight - 1,
+				pixelStack = [[startX, startY]];
+
+			while (pixelStack.length) {
+
+				newPos = pixelStack.pop();
+				x = newPos[0];
+				y = newPos[1];
+
+				// Get current pixel position
+				pixelPos = (y * canvasWidth + x) * 4;
+
+				// Go up as long as the color matches and are inside the canvas
+				while (y >= drawingBoundTop && matchStartColor(pixelPos, startR, startG, startB)) {
+					y -= 1;
+					pixelPos -= canvasWidth * 4;
+				}
+
+				pixelPos += canvasWidth * 4;
+				y += 1;
+				reachLeft = false;
+				reachRight = false;
+
+				// Go down as long as the color matches and in inside the canvas
+				while (y <= drawingBoundBottom && matchStartColor(pixelPos, startR, startG, startB)) {
+					y += 1;
+
+					colorPixel(pixelPos, curColor.r, curColor.g, curColor.b);
+
+					if (x > drawingBoundLeft) {
+						if (matchStartColor(pixelPos - 4, startR, startG, startB)) {
+							if (!reachLeft) {
+								// Add pixel to stack
+								pixelStack.push([x - 1, y]);
+								reachLeft = true;
+							}
+						} else if (reachLeft) {
+							reachLeft = false;
+						}
+					}
+
+					if (x < drawingBoundRight) {
+						if (matchStartColor(pixelPos + 4, startR, startG, startB)) {
+							if (!reachRight) {
+								// Add pixel to stack
+								pixelStack.push([x + 1, y]);
+								reachRight = true;
+							}
+						} else if (reachRight) {
+							reachRight = false;
+						}
+					}
+
+					pixelPos += canvasWidth * 4;
+				}
+			}
+		},
+
+		// startX, startY로 지정된 픽셀부터 페인트 버킷 도구로 페인팅을 시작
+		paintAt = function (startX, startY) {
+
+			let pixelPos = (startY * canvasWidth + startX) * 4,
+				r = colorLayerData.data[pixelPos],
+				g = colorLayerData.data[pixelPos + 1],
+				b = colorLayerData.data[pixelPos + 2],
+				a = colorLayerData.data[pixelPos + 3];
+
+			if (r === curColor.r && g === curColor.g && b === curColor.b) {
+				// Return because trying to fill with the same color
+				// 같은 색으로 채우려고 하니 반환하기
+				return;
+			}
+
+			if (matchOutlineColor(r, g, b, a)) {
+				// Return because clicked outline
+				// 외곽선 클릭으로 인해 반환
+				return;
+			}
+
+			floodFill(startX, startY, r, g, b);
+
+			redraw();
+		},
+
+		// Add mouse event listeners to the canvas
+		createMouseEvents = function () {
+
+
+			$('#canvas').mousedown(function (e) {
+				// Mouse down location
+				let mouseX = e.pageX - this.offsetLeft,
+					mouseY = e.pageY - this.offsetTop;
+
+				console.log(mouseX, mouseY);
+				if (mouseX < drawingAreaX) { // 도면 왼쪽 영역 (팔레트)
+					if (mouseX > swatchStartX) {
+						if (mouseY > swatchStartY && mouseY < swatchStartY + swatchImageHeight) {
+							curColor = colorOrange;
+							redraw();
+						} else if (mouseY > swatchStartY + swatchImageHeight && mouseY < swatchStartY + swatchImageHeight * 2) {
+							curColor = colorGreen;
+							redraw();
+						} else if (mouseY > swatchStartY + swatchImageHeight * 2 && mouseY < swatchStartY + swatchImageHeight * 3) {
+							curColor = colorYellow;
+							redraw();
+						} else if (mouseY > swatchStartY + swatchImageHeight * 3 && mouseY < swatchStartY + swatchImageHeight * 4) {
+							curColor = colorBrown;
+							redraw();
+						}
+					}
+				} else if ((mouseY > drawingAreaY && mouseY < drawingAreaY + drawingAreaHeight) && (mouseX <= drawingAreaX + drawingAreaWidth)) {
+					// Mouse click location on drawing area
+					paintAt(mouseX, mouseY);
+				}
+			});
+		},
+
+		// 필요한 리소스가 모두 로드된 후 다시 그리기 기능을 호출함
+		resourceLoaded = function () {
+
+			curLoadResNum += 1;
+			if (curLoadResNum === totalLoadResources) {
+				createMouseEvents();
+				redraw();
+			}
+		},
+
+		// Creates a canvas element, loads images, adds events, and draws the canvas for the first time.
+		// 컨버스 요소를 만들고, 이미지 로드하고, 이벤트 추가하고, 처음으로 컨버스를 그림
+		init = function () {
+
+			// Create the canvas (Neccessary for IE because it doesn't know what a canvas element is)
+			// 컨버스 만들기 (컨버스 요소가 무엇인지 모르기 때문에 IE가 필요함)
+			let canvas = document.createElement('canvas');
+			canvas.setAttribute('width', canvasWidth);
+			canvas.setAttribute('height', canvasHeight);
+			canvas.setAttribute('id', 'canvas');
+			document.getElementById('canvasDiv').appendChild(canvas);
+
+			context = canvas.getContext("2d"); // Grab the 2d canvas context
+			// Note: The above code is a workaround for IE 8 and lower. Otherwise we could have used:
+			//     context = document.getElementById('canvas').getContext("2d");
+
+			// Load images
+			backgroundImage.onload = resourceLoaded; // 이미지 로딩 후 렌더링하기 
+			backgroundImage.src = "images/background.png";
+
+			swatchImage.onload = resourceLoaded;
+			swatchImage.src = "images/paint-outline.png";
+
+			outlineImage.onload = function () {
+				context.drawImage(outlineImage, drawingAreaX, drawingAreaY, drawingAreaWidth, drawingAreaHeight);
+
+				// Test for cross origin security error (SECURITY_ERR: DOM Exception 18)
+				try {
+					outlineLayerData = context.getImageData(0, 0, canvasWidth, canvasHeight); // x, y(위치)와 너비, 높이(치수)
+				} catch (ex) {
+					window.alert("Application cannot be run locally. Please run on a server.");
+					return;
+				}
+				clearCanvas();
+				colorLayerData = context.getImageData(0, 0, canvasWidth, canvasHeight); // 각 픽셀에 대한 객체 imageData의 정보를 받아옴 (R,G,B,A) 값을 받아온다
+				// 인자는 x, y, width, height
+				resourceLoaded();
+			};
+			outlineImage.src = "images/watermelon-duck-outline.png";
+		};
+
+	return {
+		init: init
+	};
+}());
