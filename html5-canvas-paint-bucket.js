@@ -1,12 +1,15 @@
 'use strict';
 
+const palette = document.querySelector('.controls__colors');
+// const canvasDiv = document.querySelector('#canvasDiv');
+const canvasTag = document.querySelector('#canvas');
+
 let curColor = {
 	r: 255,
 	g: 255,
 	b: 65
 };
 
-const palette = document.querySelector('.controls__colors');
 palette.addEventListener(('click'), (e) => {
 	const nowColor = e.target.style.backgroundColor;
 	const nowColorArr = String(nowColor.match(/(?<=\().+?(?=\))/g)).split(',');
@@ -38,7 +41,7 @@ let paintBucketApp = (function () {
 		// Clears the canvas.
 		clearCanvas = function () {
 
-			context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+			context.clearRect(0, 0, canvasTag.width, canvasTag.height);
 		},
 
 		// Draw the elements on the canvas
@@ -205,15 +208,24 @@ let paintBucketApp = (function () {
 		// Add mouse event listeners to the canvas
 		createMouseEvents = function () {
 
+			canvasTag.addEventListener('mousedown', (e) => {
+				let mouseX = e.clientX,
+					mouseY = e.clientY;
 
-			$('#canvas').mousedown(function (e) {
-				// Mouse down location
-				let mouseX = e.pageX - this.offsetLeft,
-					mouseY = e.pageY - this.offsetTop;
-
-				// console.log(mouseX, mouseY);
-				paintAt(mouseX, mouseY); // 마우스가 클릭되었을 때, 색칠하는 함수 실행
+				console.log(mouseX, mouseY);
+				// let mouseX = e.pageX - this.offsetLeft,
+					// mouseY = e.pageY - this.offsetTop;
+				paintAt(mouseX, mouseY)
 			});
+
+			// canvas.mousedown(function (e) {
+			// 	// Mouse down location
+			// 	let mouseX = e.pageX - this.offsetLeft,
+			// 		mouseY = e.pageY - this.offsetTop;
+
+			// 	// console.log(mouseX, mouseY);
+			// 	paintAt(mouseX, mouseY); // 마우스가 클릭되었을 때, 색칠하는 함수 실행
+			// });
 		},
 
 		// 필요한 리소스가 모두 로드된 후 다시 그리기 기능을 호출함
@@ -232,13 +244,13 @@ let paintBucketApp = (function () {
 
 			// Create the canvas (Neccessary for IE because it doesn't know what a canvas element is)
 			// 컨버스 만들기 (컨버스 요소가 무엇인지 모르기 때문에 IE가 필요함)
-			let canvas = document.createElement('canvas');
-			canvas.setAttribute('width', canvasWidth);
-			canvas.setAttribute('height', canvasHeight);
-			canvas.setAttribute('id', 'canvas');
-			document.getElementById('canvasDiv').appendChild(canvas);
+			// let canvas = document.createElement('canvas'); // 컨버스 요소 생성
+			// canvas.setAttribute('width', canvasWidth); // 속성으로 가로는 canvasWidth
+			// canvas.setAttribute('height', canvasHeight); // 세로는 cavasHeight
+			// canvas.setAttribute('id', 'canvas'); // 아이디는 canvas로
+			// document.getElementById('canvasDiv').appendChild(canvas); // canvasDiv에 canvas 요소 붙이기
 
-			context = canvas.getContext("2d"); // Grab the 2d canvas context
+			context = canvasTag.getContext("2d"); // Grab the 2d canvas context
 			// Note: The above code is a workaround for IE 8 and lower. Otherwise we could have used:
 			//     context = document.getElementById('canvas').getContext("2d");
 
