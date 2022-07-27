@@ -17,10 +17,15 @@
       <div class="controls__color jsColor" style="background-color: rgb(0, 116, 56)"></div>
       <div class="controls__color jsColor" style="background-color: rgb(0, 85, 102)"></div>
     </div>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
+    <!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script> -->
     <script src="html5-canvas-paint-bucket.js"></script>
-    <script> $(document).ready(function () {
-    	 paintBucketApp.init();
-});</script>
+    <script> 
+      window.addEventListener('DOMContentLoaded', function() {
+        paintBucketApp.init();
+      });
+      // $(document).ready(function () {
+      //   paintBucketApp.init();
+      // });
+    </script>
   </body>
 </html>

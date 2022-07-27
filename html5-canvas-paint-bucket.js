@@ -23,24 +23,27 @@ palette.addEventListener(('click'), (e) => {
 
 let paintBucketApp = (function () {
 	let context,
-		canvasWidth = 490,
-		canvasHeight = 220,
+		// canvasWidth = 490,
+		// canvasHeight = 220,
+		canvasWidth = 300,
+		canvasHeight = 300,
 		
 		outlineImage = new Image(), // 누끼 이미지 (선만 딴거)
 		backgroundImage = new Image(), // 빈 png 
 
-		drawingAreaX = 111, // 이건 머니?????? 그림 그리는 영역의 X좌표?
-		drawingAreaY = 11, // 얘는 또 머니???? 그림 그리는 영역의 y좌표???
-		drawingAreaWidth = 267, // watermelon-duck 이미지의 가로 크기
-		drawingAreaHeight = 200, // watermelon-duck 이미지의 세로 크기 
+		drawingAreaX = 0, // 이건 머니?????? 그림 그리는 영역의 X좌표?
+		drawingAreaY = 0, // 얘는 또 머니???? 그림 그리는 영역의 y좌표???
+		// drawingAreaWidth = 267, // watermelon-duck 이미지의 가로 크기
+		// drawingAreaHeight = 200, // watermelon-duck 이미지의 세로 크기 
+		drawingAreaWidth = 280,
+		drawingAreaHeight = 150,
 		colorLayerData, // RGBA의 값을 가진 객체 
 		outlineLayerData, // RGBA의 값을 가진 객체
-		totalLoadResources = 2, // 총 로드해야할 리소스(이미지) 개수는 3
+		totalLoadResources = 2, // 총 로드해야할 리소스(이미지) 개수는 2
 		curLoadResNum = 0, // 로드된 이미지 수 카운트 
 
 		// Clears the canvas.
 		clearCanvas = function () {
-
 			context.clearRect(0, 0, canvasTag.width, canvasTag.height);
 		},
 
