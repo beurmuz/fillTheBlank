@@ -24,12 +24,8 @@ let paintBucketApp = (function () {
 		canvasHeight = 220,
 		
 		outlineImage = new Image(), // 누끼 이미지 (선만 딴거)
-		swatchImage = new Image(), // 팔레트 동그라미 선
 		backgroundImage = new Image(), // 빈 png 
-		// swatchStartX = 18, // 얘 머니
-		// swatchStartY = 19, // 얜 뭐니?
-		// swatchImageWidth = 93, // paint-outline 이미지의 가로 크기, r가로가 잘리기 때문에 18 + 93을 한 위치는 image 칸(사각형)의 시작 위치와 같음
-		// swatchImageHeight = 46, // paint-outline 이미지의 세로 크기 
+
 		drawingAreaX = 111, // 이건 머니?????? 그림 그리는 영역의 X좌표?
 		drawingAreaY = 11, // 얘는 또 머니???? 그림 그리는 영역의 y좌표???
 		drawingAreaWidth = 267, // watermelon-duck 이미지의 가로 크기
@@ -44,22 +40,6 @@ let paintBucketApp = (function () {
 
 			context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 		},
-
-		// Draw a color swatch (컬러 팔레트)
-		// drawColorSwatch = function (color, x, y) {
-
-		// 	// context.beginPath();
-		// 	// context.arc(x + 46, y + 23, 18, 0, Math.PI * 2, true); // 컨버스에 팔레트 테두리(원) 그리기
-		// 	// context.closePath();
-		// 	// context.fillStyle = "rgb(" + color.r + "," + color.g + "," + color.b + ")";
-		// 	// context.fill();
-
-		// 	if (curColor === color) {
-		// 		context.drawImage(swatchImage, 0, 0, 59, swatchImageHeight, x, y, 59, swatchImageHeight);
-		// 	} else {
-		// 		context.drawImage(swatchImage, x, y, swatchImageWidth, swatchImageHeight);
-		// 	}
-		// },
 
 		// Draw the elements on the canvas
 		redraw = function () {
@@ -76,20 +56,6 @@ let paintBucketApp = (function () {
 
 			// Draw the background
 			context.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight); // background 이미지 그리기
-
-			// Draw the color swatches (컬러 팔레트 부분)
-			// locX = 52;
-			// locY = 19;
-			// drawColorSwatch(colorOrange, locX, locY);
-
-			// locY += 46;
-			// drawColorSwatch(colorGreen, locX, locY);
-
-			// locY += 46;
-			// drawColorSwatch(colorYellow, locX, locY);
-
-			// locY += 46;
-			// drawColorSwatch(colorBrown, locX, locY);
 
 			// Draw the outline image on top of everything. We could move this to a separate 
 			//   canvas so we did not have to redraw this everyime.
@@ -245,28 +211,8 @@ let paintBucketApp = (function () {
 				let mouseX = e.pageX - this.offsetLeft,
 					mouseY = e.pageY - this.offsetTop;
 
-				console.log(mouseX, mouseY);
+				// console.log(mouseX, mouseY);
 				paintAt(mouseX, mouseY); // 마우스가 클릭되었을 때, 색칠하는 함수 실행
-				// if (mouseX < drawingAreaX) { // 도면 왼쪽 영역 (팔레트)
-				// 	if (mouseX > swatchStartX) {
-				// 		if (mouseY > swatchStartY && mouseY < swatchStartY + swatchImageHeight) {
-				// 			curColor = colorOrange;
-				// 			redraw();
-				// 		} else if (mouseY > swatchStartY + swatchImageHeight && mouseY < swatchStartY + swatchImageHeight * 2) {
-				// 			curColor = colorGreen;
-				// 			redraw();
-				// 		} else if (mouseY > swatchStartY + swatchImageHeight * 2 && mouseY < swatchStartY + swatchImageHeight * 3) {
-				// 			curColor = colorYellow;
-				// 			redraw();
-				// 		} else if (mouseY > swatchStartY + swatchImageHeight * 3 && mouseY < swatchStartY + swatchImageHeight * 4) {
-				// 			curColor = colorBrown;
-				// 			redraw();
-				// 		}
-				// 	}
-				// } else if ((mouseY > drawingAreaY && mouseY < drawingAreaY + drawingAreaHeight) && (mouseX <= drawingAreaX + drawingAreaWidth)) {
-				// 	// Mouse click location on drawing area
-				// 	paintAt(mouseX, mouseY);
-				// }
 			});
 		},
 
@@ -299,9 +245,6 @@ let paintBucketApp = (function () {
 			// Load images
 			backgroundImage.onload = resourceLoaded; // 이미지 로딩 후 렌더링하기 
 			backgroundImage.src = "images/background.png";
-
-			// swatchImage.onload = resourceLoaded;
-			// swatchImage.src = "images/paint-outline.png";
 
 			outlineImage.onload = function () {
 				context.drawImage(outlineImage, drawingAreaX, drawingAreaY, drawingAreaWidth, drawingAreaHeight);
