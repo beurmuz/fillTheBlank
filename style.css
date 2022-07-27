@@ -2,6 +2,9 @@
     box-sizing: border-box;
 }
 
+body {
+    margin: 0;
+}
 .controls {
     margin-top: 10px;
     display: flex;
@@ -27,14 +30,9 @@
     
 }
 
-#canvasDiv {
-    border: 5px solid red;
-    width: 350px;
-    height: 350px;
-}
-
 #canvas {
     width: 300px;
     height: 300px;
     border: 3px solid blue;
+
 }
