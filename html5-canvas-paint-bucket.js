@@ -320,7 +320,7 @@ let paintBucketApp = (function () {
 				// 인자는 x, y, width, height
 				resourceLoaded();
 			};
-			outlineImage.src = "images/watermelon-duck-outline.png";
+			outlineImage.src = "images/watermelon-duck-outline2.png";
 		};
 
 	return {
