@@ -1,7 +1,7 @@
 'use strict';
 
 const palette = document.querySelector('.controls__colors');
-const canvas = document.querySelector('#canvas');
+const canvas = document.querySelector('#canvas'); // canvasRef
 
 // 기본 컬러 값 
 let curColor = {
@@ -11,14 +11,14 @@ let curColor = {
 };
 
 // 변수 선언
-canvas.width = 400;
-canvas.height = 400;
+canvas.width = 350;
+canvas.height = 350;
 const canvasWidth = canvas.width, canvasHeight = canvas.height; // 캔버스 가로, 세로 사이즈 (실제 캔버스 요소의 크기)
 const outlineImage = new Image(), backgroundImage = new Image(); // 이미지 함수
 const drawingAreaX = 0, drawingAreaY = 0; // 그림 그리는 시작 좌표 x, y
 const drawingAreaWidth = canvas.width, drawingAreaHeight = canvas.height; // 색칠할 이미지의 가로, 세로 🤯🤯🤯🤯
 let	colorData, outlineData; // RGBA의 값을 가진 객체들
-let totalLoadResources = 2, curLoadResNum = 0; // 총 로드해야할 이미지 소스 개수, 로드된 이미지 수를 카운트 할 변수  
+let totalLoadResources = 1, curLoadResNum = 0; // 총 로드해야할 이미지 소스 개수, 로드된 이미지 수를 카운트 할 변수  
 
 // canvas요소는 getContext() 메서드로 랜더링 컨텍스트와 (렌더링 컨텍스트의) 그리기 함수들을 사용할 수 있음
 const context = canvas.getContext("2d");
@@ -29,8 +29,8 @@ if (!context) {
 // 컨버스 초기화: 컨버스 요소 생성, 이미지 로드, 이벤트 추가
 const init = () => {
 	// 배경 로드
-	backgroundImage.src = "images/background.png";
-	backgroundImage.onload = resourceLoaded; // 이미지 로딩 후 렌더링하기 
+	// backgroundImage.src = "images/background.png";
+	// backgroundImage.onload = resourceLoaded; // 이미지 로딩 후 렌더링하기 
 
 	// 누끼 이미지 로드
 	outlineImage.src = 'images/kakao.png';
@@ -82,7 +82,7 @@ const redraw = function () {
 	context.putImageData(colorData, 0, 0); // 컬러 넣기 시작. 주석 시 색깔이 안채워짐
 
 	// drawImage는 컨버스에서 이미지를 그려줌 - new Image로 객체 생성 후, onload로 이미지를 로딩한 후에 컨버스에서 이미지를 그릴 수 있음
-	context.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight); // 이미지 객체, x, y좌표, 컨버스 위에 그려질 이미지의 넓이, 높이
+	// context.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight); // 이미지 객체, x, y좌표, 컨버스 위에 그려질 이미지의 넓이, 높이
 	context.drawImage(outlineImage, drawingAreaX, drawingAreaY, drawingAreaWidth, drawingAreaHeight); // watermelon 이미지 그리기
 };
 
@@ -94,7 +94,7 @@ let createMouseEvents = () => {
 		// let nowX = e.clientX - canvas.offsetLeft;
 		// let nowY = e.clientY - canvas.offsetTop; // 스크롤 시 상대적인 위치를 가짐
 		console.log(nowX, nowY);
-		paintAt(nowX, nowY-35);
+		paintAt(nowX, nowY);
 	});
 };
 
