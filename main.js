@@ -14,7 +14,8 @@ let curColor = {
 canvas.width = 350;
 canvas.height = 350;
 const canvasWidth = canvas.width, canvasHeight = canvas.height; // 캔버스 가로, 세로 사이즈 (실제 캔버스 요소의 크기)
-const outlineImage = new Image(), backgroundImage = new Image(); // 이미지 함수
+const outlineImage = new Image();
+// const backgroundImage = new Image(); // 이미지 함수
 const drawingAreaX = 0, drawingAreaY = 0; // 그림 그리는 시작 좌표 x, y
 const drawingAreaWidth = canvas.width, drawingAreaHeight = canvas.height; // 색칠할 이미지의 가로, 세로 🤯🤯🤯🤯
 let	colorData, outlineData; // RGBA의 값을 가진 객체들
@@ -28,13 +29,7 @@ if (!context) {
 
 // 컨버스 초기화: 컨버스 요소 생성, 이미지 로드, 이벤트 추가
 const init = () => {
-	// 배경 로드
-	// backgroundImage.src = "images/background.png";
-	// backgroundImage.onload = resourceLoaded; // 이미지 로딩 후 렌더링하기 
-
-	// 누끼 이미지 로드
-	outlineImage.src = 'images/kakao.png';
-	// outlineImage.src = "images/jjanggu.png";
+	outlineImage.src = 'images/jjanggu.png';
 	outlineImage.onload = () => {
 		context.drawImage(outlineImage, drawingAreaX, drawingAreaY, drawingAreaWidth, drawingAreaHeight);
 
@@ -50,6 +45,8 @@ const init = () => {
 		clearCanvas(); // 컨버스 초기화
 		colorData = context.getImageData(0, 0, canvasWidth, canvasHeight); // 각 픽셀에 대한 imageData 객체의 (R,G,B,A) 값을 받아옴
 		resourceLoaded();
+		console.log(outlineData);
+		console.log(colorData);
 	};
 };
 
@@ -91,9 +88,7 @@ let createMouseEvents = () => {
 	canvas.addEventListener('mousedown', (e) => {
 		let nowX = e.offsetX;
 		let nowY = e.offsetY;
-		// let nowX = e.clientX - canvas.offsetLeft;
-		// let nowY = e.clientY - canvas.offsetTop; // 스크롤 시 상대적인 위치를 가짐
-		console.log(nowX, nowY);
+		// console.log(nowX, nowY);
 		paintAt(nowX, nowY);
 	});
 };
@@ -238,5 +233,5 @@ let paintAt = function (startX, startY) {
 	redraw();
 };
 
-console.log(canvasWidth, canvasHeight);
-console.log(drawingAreaX, drawingAreaY);
+// console.log(canvasWidth, canvasHeight);
+// console.log(drawingAreaX, drawingAreaY);
