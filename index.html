@@ -1,27 +1,49 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Create HTML5 Canvas JavaScript Paint Bucket Example</title>
-    <link rel='stylesheet' href="./style.css">
+    <title>Painting</title>
+    <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
+    <h2>Fill in the blank</h2>
     <canvas id="canvas"></canvas>
-    <div class="controls__colors" id="jsColors">
-      <div class="controls__color jsColor" style="background-color: rgb(235, 111, 14)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(255, 213, 0)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(129, 191, 72)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(0, 116, 56)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(0, 85, 102)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(0, 85, 102)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(152, 47, 129)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(136, 35, 94)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(255, 225, 205)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(227, 26, 0)"></div>
-      <div class="controls__color jsColor" style="background-color: rgb(76, 99, 161)"></div>
+
+    <div class="palette" id="jsPalette">
+      <div class="oneColor" style="background-color: rgb(255, 134, 134)"></div>
+      <div class="oneColor" style="background-color: rgb(235, 58, 34)"></div>
+      <div class="oneColor" style="background-color: rgb(227, 26, 0)"></div>
+      <div class="oneColor" style="background-color: rgb(235, 111, 14)"></div>
+      <div class="oneColor" style="background-color: rgb(255, 153, 51)"></div>
+      <div class="oneColor" style="background-color: rgb(255, 213, 0)"></div>
+      <div class="oneColor" style="background-color: rgb(255, 255, 102)"></div>
+      <div class="oneColor" style="background-color: rgb(129, 191, 72)"></div>
+      <div class="oneColor" style="background-color: rgb(102, 255, 102)"></div>
+      <div class="oneColor" style="background-color: rgb(0, 116, 56)"></div>
+      <div class="oneColor" style="background-color: rgb(0, 85, 102)"></div>
+      <div class="oneColor" style="background-color: rgb(0, 85, 102)"></div>
+      <div class="oneColor" style="background-color: rgb(0, 255, 255)"></div>
+      <div class="oneColor" style="background-color: rgb(102, 204, 255)"></div>
+      <div class="oneColor" style="background-color: rgb(76, 99, 161)"></div>
+      <div class="oneColor" style="background-color: rgb(109, 53, 222)"></div>
+      <div class="oneColor" style="background-color: rgb(160, 122, 237)"></div>
+      <div class="oneColor" style="background-color: rgb(255, 153, 204)"></div>
+      <div class="oneColor" style="background-color: rgb(255, 0, 255)"></div>
+      <div class="oneColor" style="background-color: rgb(223, 55, 108)"></div>
+      <div class="oneColor" style="background-color: rgb(152, 47, 129)"></div>
+      <div class="oneColor" style="background-color: rgb(136, 35, 94)"></div>
+      <div class="oneColor" style="background-color: rgb(255, 225, 205)"></div>
+      <div class="oneColor" style="background-color: rgb(248, 210, 185)"></div>
+      <div class="oneColor" style="background-color: rgb(190, 123, 57)"></div>
+      <div class="oneColor" style="background-color: rgb(102, 51, 0)"></div>
+      <div class="oneColor" style="background-color: rgb(192, 192, 192)"></div>
+      <div class="oneColor" style="background-color: rgb(51, 51, 51)"></div>
+      <div class="oneColor" style="background-color: rgb(0, 0, 0)"></div>
+      <div class="oneColor" style="background-color: rgb(255, 255, 255)"></div>
     </div>
     <script src="./main.js"></script>
-    <script> 
-      window.addEventListener('DOMContentLoaded', function() {
+    <script>
+      // DOM 파싱이 완전히 준비된 후에 JavaScript를 실행한다.
+      window.addEventListener("DOMContentLoaded", function () {
         init();
       });
     </script>

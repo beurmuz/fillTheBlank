@@ -1,237 +1,250 @@
-'use strict';
+"use strict";
 
-const palette = document.querySelector('.controls__colors');
-const canvas = document.querySelector('#canvas'); // canvasRef
+const canvas = document.querySelector("#canvas"); // canvasRef
+const palette = document.querySelector(".palette");
 
-// 기본 컬러 값 
-let curColor = {
-	r: 255,
-	g: 255,
-	b: 234
-};
-
-// 변수 선언
+// canvas의 가로, 세로 사이즈 (실제 컨버스 요소의 크기)
 canvas.width = 350;
 canvas.height = 350;
-const canvasWidth = canvas.width, canvasHeight = canvas.height; // 캔버스 가로, 세로 사이즈 (실제 캔버스 요소의 크기)
-const outlineImage = new Image();
-// const backgroundImage = new Image(); // 이미지 함수
-const drawingAreaX = 0, drawingAreaY = 0; // 그림 그리는 시작 좌표 x, y
-const drawingAreaWidth = canvas.width, drawingAreaHeight = canvas.height; // 색칠할 이미지의 가로, 세로 🤯🤯🤯🤯
-let	colorData, outlineData; // RGBA의 값을 가진 객체들
-let totalLoadResources = 1, curLoadResNum = 0; // 총 로드해야할 이미지 소스 개수, 로드된 이미지 수를 카운트 할 변수  
+const canvasWidth = canvas.width;
+const canvasHeight = canvas.height; // canvas의 가로, 세로 사이즈 (실제 canvas 요소의 크기)
 
-// canvas요소는 getContext() 메서드로 랜더링 컨텍스트와 (렌더링 컨텍스트의) 그리기 함수들을 사용할 수 있음
-const context = canvas.getContext("2d");
-if (!context) {
-	alert('해당 기능을 이용할 수 없어요.');
-}
-
-// 컨버스 초기화: 컨버스 요소 생성, 이미지 로드, 이벤트 추가
-const init = () => {
-	outlineImage.src = 'images/jjanggu.png';
-	outlineImage.onload = () => {
-		context.drawImage(outlineImage, drawingAreaX, drawingAreaY, drawingAreaWidth, drawingAreaHeight);
-
-		// Test for cross origin security error (SECURITY_ERR: DOM Exception 18)
-		try {
-			// getImageData로 컨버스에 그려진 이미지 픽셀정보 얻기
-			outlineData = context.getImageData(0, 0, canvasWidth, canvasHeight); // x, y(위치)와 너비, 높이(치수)
-		} catch (error) {
-			window.alert("Application cannot be run locally. Please run on a server.");
-			return;
-		}
-
-		clearCanvas(); // 컨버스 초기화
-		colorData = context.getImageData(0, 0, canvasWidth, canvasHeight); // 각 픽셀에 대한 imageData 객체의 (R,G,B,A) 값을 받아옴
-		resourceLoaded();
-		console.log(outlineData);
-		console.log(colorData);
-	};
+// 시작 컬러값
+let currentColor = {
+  r: 255,
+  g: 255,
+  b: 234,
 };
 
-// 팔레트 클릭 시 해당 색상이 현재 컬러 curColor에 저장됨
-palette.addEventListener(('click'), (e) => {
-	const nowColor = e.target.style.backgroundColor;
-	const nowColorArr = String(nowColor.match(/(?<=\().+?(?=\))/g)).split(',');
-	curColor = {
-		r: +nowColorArr[0],
-		g: +nowColorArr[1],
-		b: +nowColorArr[2]
-	}
+// 선만 있는 이미지 가져오기
+// 순서대로 이미지의 가로, 세로, 색상 객체들(RGBA)
+const onlyLineImage = new Image();
+const imageWidth = canvas.width;
+const imageHeight = canvas.height;
+
+// 두 변수는 canvas위에 있는 모든 픽셀의 색상 정보(R, G, B, A)를 4byte씩 담고 있음
+// 총 배열의 길이는 490000. 그 이유는 전체 픽셀수가 350*350=122500이고, 1개의 픽셀 당 4개의 값이 필요해서 122500*4가 되는 것
+let outlineData; // 외곽선 정보를 저장 (구분을 위해 저장)
+let useColorsData; // 사용자가 사용한 색상들을 저장
+
+// 그림을 그리기 시작하는 (x, y)좌표
+const drawStartX = 0;
+const drawStartY = 0;
+
+// ----------------------------------------------------------------------------------
+// ✅ canvas에서 2D 그림을 그릴 수 있는 API를 가져오지 못할 경우(canvas 미지원 or 보안 or 버그)
+const context = canvas.getContext("2d");
+if (!context) alert("Canvas를 이용할 수 없습니다.");
+
+// 🔎 canvas 초기화 함수
+// : canvas 요소 생성 -> 이미지 load -> 이벤트 추가
+const init = () => {
+  onlyLineImage.src = "images/jjanggu.png";
+  onlyLineImage.onload = () => {
+    context.drawImage(
+      onlyLineImage,
+      drawStartX,
+      drawStartY,
+      imageWidth,
+      imageHeight
+    );
+
+    // file에서 열었거나 CORS 설정이 안되어있는 경우 에러 처리를 해주어야 함
+    try {
+      // 처음 외곽선을 그렸을 때, 픽셀 정보를 복사함
+      outlineData = context.getImageData(0, 0, canvasWidth, canvasHeight); // (x, y, 너비, 높이)
+    } catch (error) {
+      alert("서버에서 실행해주세요.");
+      return;
+    }
+
+    clearCanvas(); // canvas 초기화
+    useColorsData = context.getImageData(0, 0, canvasWidth, canvasHeight); // 각 픽셀에 대한 imageData 객체의 (R, G, B, A) 받아오기
+    createMouseEvents();
+    redraw();
+    // console.log("outlineData: ", outlineData);
+    // console.log("useColorsData: ", useColorsData);
+  };
+};
+
+// 🔎 canvas 내부의 모든 픽셀 (x, y)~(width, height) (= 전체 영역)을 지우는 함수
+const clearCanvas = function () {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+};
+
+// ✅ palette에서 사용자가 클릭한 색상을 현재 컬러로 저장함
+palette.addEventListener("click", (e) => {
+  const nowColor = e.target.style.backgroundColor;
+  // rgb(255, 255, 255)에서 괄호를 제외하고 ','를 기준으로 나누어 숫자만 뽑아냄 -> ['255', '255', '255']
+  const nowColorArr = String(nowColor.match(/(?<=\().+?(?=\))/g)).split(",");
+  currentColor = {
+    r: Number(nowColorArr[0]),
+    g: Number(nowColorArr[1]),
+    b: Number(nowColorArr[2]),
+  };
+  //   console.log(currentColor);
 });
 
-// 컨버스를 내부를 지우는 함수
-const clearCanvas = function () {
-	context.clearRect(0, 0, canvas.width, canvas.height); // x, y, width, height
-};
-
-// 컨버스 위에 요소를 그리는 함수
+// canvas위에 요소를 그리는 함수
+// 현재 색칠 상태와 외곽선 이미지를 다시 그려주는 함수 
 const redraw = function () {
-	// 다시 그리기 전에 필요한 리소스가 모두 로드 되었는지 확인하기
-	if (curLoadResNum < totalLoadResources) { 
-		return;
-	}
-	clearCanvas();
+	// canvas 비우기. 이전 색칠 상태를 다 지운다. 
+  clearCanvas();
 
-	// 컨버스에 현재 상태의 색상 그려넣기
-	// putImageData는 imgData 전체를 x,y 위치에 써 넣음. imgData 자체에 폭, 높이에 대한 정보가 있으니 좌표만 전달하면 됨
-	context.putImageData(colorData, 0, 0); // 컬러 넣기 시작. 주석 시 색깔이 안채워짐
+  // 색칠한 내용 복원하기
+  context.putImageData(useColorsData, 0, 0); // 컬러 넣기 시작. 주석 시 색깔이 안채워짐
 
-	// drawImage는 컨버스에서 이미지를 그려줌 - new Image로 객체 생성 후, onload로 이미지를 로딩한 후에 컨버스에서 이미지를 그릴 수 있음
-	// context.drawImage(backgroundImage, 0, 0, canvasWidth, canvasHeight); // 이미지 객체, x, y좌표, 컨버스 위에 그려질 이미지의 넓이, 높이
-	context.drawImage(outlineImage, drawingAreaX, drawingAreaY, drawingAreaWidth, drawingAreaHeight); // watermelon 이미지 그리기
+  context.drawImage(
+    onlyLineImage,
+    drawStartX,
+    drawStartY,
+    imageWidth,
+    imageHeight
+  );
 };
 
 // 컨버스에서 마우스 이벤트의 현재 좌푯값 가져오기
 let createMouseEvents = () => {
-	canvas.addEventListener('mousedown', (e) => {
-		let nowX = e.offsetX;
-		let nowY = e.offsetY;
-		// console.log(nowX, nowY);
-		paintAt(nowX, nowY);
-	});
-};
-
-// 필요한 리소스가 모두 로드된 후 다시 그리기 기능을 호출함
-const resourceLoaded = function () {
-	curLoadResNum += 1;
-	if (curLoadResNum === totalLoadResources) { // 제대로 리소스된 경우
-		createMouseEvents();
-		redraw();
-	}
+  canvas.addEventListener("mousedown", (e) => {
+    let nowX = e.offsetX;
+    let nowY = e.offsetY;
+    // console.log(nowX, nowY);
+    paintAt(nowX, nowY);
+  });
 };
 
 // 선 구분 함수
-const matchOutlineColor = function(r, g, b, a) {
-	return (r + g + b < 100 && a === 255);
-}
+const matchOutlineColor = function (r, g, b, a) {
+  return r + g + b < 100 && a === 255;
+};
 
 let matchStartColor = function (pixelPos, startR, startG, startB) {
+  let r = outlineData.data[pixelPos],
+    g = outlineData.data[pixelPos + 1],
+    b = outlineData.data[pixelPos + 2],
+    a = outlineData.data[pixelPos + 3];
 
-	let r = outlineData.data[pixelPos],
-		g = outlineData.data[pixelPos + 1],
-		b = outlineData.data[pixelPos + 2],
-		a = outlineData.data[pixelPos + 3];
+  // If current pixel of the outline image is black
+  if (matchOutlineColor(r, g, b, a)) {
+    return false;
+  }
+  r = useColorsData.data[pixelPos];
+  g = useColorsData.data[pixelPos + 1];
+  b = useColorsData.data[pixelPos + 2];
 
-	// If current pixel of the outline image is black
-	if (matchOutlineColor(r, g, b, a)) {
-		return false;
-	}
-	r = colorData.data[pixelPos];
-	g = colorData.data[pixelPos + 1];
-	b = colorData.data[pixelPos + 2];
-	
-	// If the current pixel matches the clicked color
-	if (r === startR && g === startG && b === startB) {
-		return true;
-	}
+  // If the current pixel matches the clicked color
+  if (r === startR && g === startG && b === startB) {
+    return true;
+  }
 
-	// If current pixel matches the new color
-	if (r === curColor.r && g === curColor.g && b === curColor.b) {
-		return false;
-	}
+  // If current pixel matches the new color
+  if (r === currentColor.r && g === currentColor.g && b === currentColor.b) {
+    return false;
+  }
 
-	return true;
+  return true;
 };
 
 let colorPixel = function (pixelPos, r, g, b, a) {
-
-	colorData.data[pixelPos] = r;
-	colorData.data[pixelPos + 1] = g;
-	colorData.data[pixelPos + 2] = b;
-	colorData.data[pixelPos + 3] = a !== undefined ? a : 255;
+  useColorsData.data[pixelPos] = r;
+  useColorsData.data[pixelPos + 1] = g;
+  useColorsData.data[pixelPos + 2] = b;
+  useColorsData.data[pixelPos + 3] = a !== undefined ? a : 255;
 };
 
 let floodFill = function (startX, startY, startR, startG, startB) {
+  let newPos, x, y, pixelPos;
+  let reachLeft, reachRight;
+  let drawingBoundLeft = drawStartX,
+    drawingBoundTop = drawStartY;
+  let drawingBoundRight = drawStartX + imageWidth - 1,
+    drawingBoundBottom = drawStartY + imageHeight - 1;
+  let pixelStack = [[startX, startY]];
 
-	let newPos, x, y, pixelPos;
-	let reachLeft, reachRight;
-	let	drawingBoundLeft = drawingAreaX, drawingBoundTop = drawingAreaY;
-	let	drawingBoundRight = drawingAreaX + drawingAreaWidth - 1,
-		drawingBoundBottom = drawingAreaY + drawingAreaHeight - 1;
-	let	pixelStack = [[startX, startY]];
+  while (pixelStack.length) {
+    newPos = pixelStack.pop();
+    x = newPos[0];
+    y = newPos[1];
 
-	while (pixelStack.length) {
+    // Get current pixel position
+    pixelPos = (y * canvasWidth + x) * 4;
 
-		newPos = pixelStack.pop();
-		x = newPos[0];
-		y = newPos[1];
+    // Go up as long as the color matches and are inside the canvas
+    while (
+      y >= drawingBoundTop &&
+      matchStartColor(pixelPos, startR, startG, startB)
+    ) {
+      y -= 1;
+      pixelPos -= canvasWidth * 4;
+    }
 
-		// Get current pixel position
-		pixelPos = (y * canvasWidth + x) * 4;
+    pixelPos += canvasWidth * 4;
+    y += 1;
+    reachLeft = false;
+    reachRight = false;
 
-		// Go up as long as the color matches and are inside the canvas
-		while (y >= drawingBoundTop && matchStartColor(pixelPos, startR, startG, startB)) {
-			y -= 1;
-			pixelPos -= canvasWidth * 4;
-		}
+    // Go down as long as the color matches and in inside the canvas
+    while (
+      y <= drawingBoundBottom &&
+      matchStartColor(pixelPos, startR, startG, startB)
+    ) {
+      y += 1;
 
-		pixelPos += canvasWidth * 4;
-		y += 1;
-		reachLeft = false;
-		reachRight = false;
+      colorPixel(pixelPos, currentColor.r, currentColor.g, currentColor.b);
 
-		// Go down as long as the color matches and in inside the canvas
-		while (y <= drawingBoundBottom && matchStartColor(pixelPos, startR, startG, startB)) {
-			y += 1;
+      if (x > drawingBoundLeft) {
+        if (matchStartColor(pixelPos - 4, startR, startG, startB)) {
+          if (!reachLeft) {
+            // Add pixel to stack
+            pixelStack.push([x - 1, y]);
+            reachLeft = true;
+          }
+        } else if (reachLeft) {
+          reachLeft = false;
+        }
+      }
 
-			colorPixel(pixelPos, curColor.r, curColor.g, curColor.b);
+      if (x < drawingBoundRight) {
+        if (matchStartColor(pixelPos + 4, startR, startG, startB)) {
+          if (!reachRight) {
+            // 스택에 추가 탐색이 필요한 픽셀 추가하기
+            pixelStack.push([x + 1, y]);
+            reachRight = true;
+          }
+        } else if (reachRight) {
+          reachRight = false;
+        }
+      }
 
-			if (x > drawingBoundLeft) {
-				if (matchStartColor(pixelPos - 4, startR, startG, startB)) {
-					if (!reachLeft) {
-						// Add pixel to stack
-						pixelStack.push([x - 1, y]);
-						reachLeft = true;
-					}
-				} else if (reachLeft) {
-					reachLeft = false;
-				}
-			}
-
-			if (x < drawingBoundRight) {
-				if (matchStartColor(pixelPos + 4, startR, startG, startB)) {
-					if (!reachRight) {
-						// 스택에 추가 탐색이 필요한 픽셀 추가하기
-						pixelStack.push([x + 1, y]);
-						reachRight = true;
-					}
-				} else if (reachRight) {
-					reachRight = false;
-				}
-			}
-
-			pixelPos += canvasWidth * 4;
-		}
-	}
+      pixelPos += canvasWidth * 4;
+    }
+  }
 };
 
 // startX, startY로 지정된 픽셀부터 페인트 버킷 도구로 페인팅을 시작
 let paintAt = function (startX, startY) {
+  let pixelPos = (startY * canvasWidth + startX) * 4,
+    r = useColorsData.data[pixelPos],
+    g = useColorsData.data[pixelPos + 1],
+    b = useColorsData.data[pixelPos + 2],
+    a = useColorsData.data[pixelPos + 3];
 
-	let pixelPos = (startY * canvasWidth + startX) * 4,
-		r = colorData.data[pixelPos],
-		g = colorData.data[pixelPos + 1],
-		b = colorData.data[pixelPos + 2],
-		a = colorData.data[pixelPos + 3];
+  if (r === currentColor.r && g === currentColor.g && b === currentColor.b) {
+    // Return because trying to fill with the same color
+    // 같은 색으로 채우려고 하니 반환하기
+    return;
+  }
 
-	if (r === curColor.r && g === curColor.g && b === curColor.b) {
-		// Return because trying to fill with the same color
-		// 같은 색으로 채우려고 하니 반환하기
-		return;
-	}
+  if (matchOutlineColor(r, g, b, a)) {
+    // Return because clicked outline
+    // 외곽선 클릭으로 인해 반환
+    return;
+  }
 
-	if (matchOutlineColor(r, g, b, a)) {
-		// Return because clicked outline
-		// 외곽선 클릭으로 인해 반환
-		return;
-	}
+  floodFill(startX, startY, r, g, b);
 
-	floodFill(startX, startY, r, g, b);
-
-	redraw();
+  redraw();
 };
 
 // console.log(canvasWidth, canvasHeight);
-// console.log(drawingAreaX, drawingAreaY);
+// console.log(drawStartX, drawStartY);
