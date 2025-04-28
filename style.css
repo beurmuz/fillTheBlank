@@ -12,6 +12,14 @@ body {
   height: 350px;
 }
 
+#saveButton {
+  display: block;
+  margin: 20px auto;
+  border: none;
+  font-size: medium;
+  font-weight: bold;
+}
+
 .palette {
   display: grid;
   grid-template-columns: repeat(5, 40px);

@@ -51,7 +51,9 @@ const init = () => {
 
     // file에서 열었거나 CORS 설정이 안되어있는 경우 에러 처리를 해주어야 함
     try {
-      // 처음 외곽선을 그렸을 때, 픽셀 정보를 복사함
+      // 처음 외곽선을 그렸을 때, 픽셀 정보를 복사
+      // (0, 0) ~ (canvasWidth, canvasHeight) 범위 안에 있는 모든 픽셀의 R, G, B, A를 하나하나 다 가져오는 것
+      // (즉, getImageData로 canvas에 있는 전체 픽셀 정보를 전부 가져오는 것이다!)
       outlineData = context.getImageData(0, 0, canvasWidth, canvasHeight); // (x, y, 너비, 높이)
     } catch (error) {
       alert("서버에서 실행해주세요.");
@@ -118,33 +120,39 @@ const matchOutlineColor = (r, g, b, a) => {
   return r + g + b < 100 && a === 255;
 };
 
+// 🔎 pixelPos 위치의 픽셀을 칠할 수 있는지 아닌지 판단하는 함수
 let matchStartColor = function (pixelPos, startR, startG, startB) {
+  // 외곽선 색 정보 가져오기
   let r = outlineData.data[pixelPos],
     g = outlineData.data[pixelPos + 1],
     b = outlineData.data[pixelPos + 2],
     a = outlineData.data[pixelPos + 3];
 
-  // If current pixel of the outline image is black
+  // 현재 pixelPos가 외곽선(검정색)이면 색칠하지 않고 false를 바로 반환
   if (matchOutlineColor(r, g, b, a)) {
     return false;
   }
+
+  // 실제로 사용자가 색칠한 정보 읽어오기
   r = useColorsData.data[pixelPos];
   g = useColorsData.data[pixelPos + 1];
   b = useColorsData.data[pixelPos + 2];
 
-  // If the current pixel matches the clicked color
+  // 현재 픽셀이 처음 클릭한 색과 같다면(같은 색끼리는 이어서 색칠해야 함) true 반환!
   if (r === startR && g === startG && b === startB) {
     return true;
   }
 
-  // If current pixel matches the new color
+  // 현재 픽셀이 이미 새로 칠한 색이면(또 칠할 필요 없음) false 반환
   if (r === pickColor.r && g === pickColor.g && b === pickColor.b) {
     return false;
   }
 
+  // 나머지는 색칠 가능한 픽셀이므로 true 반환
   return true;
 };
 
+// 🔎 floodFill 과정 중, pixelPos 위치의 픽셀을 색칠하는 함수
 let colorPixel = function (pixelPos, r, g, b, a) {
   useColorsData.data[pixelPos] = r;
   useColorsData.data[pixelPos + 1] = g;
@@ -152,11 +160,12 @@ let colorPixel = function (pixelPos, r, g, b, a) {
   useColorsData.data[pixelPos + 3] = a !== undefined ? a : 255;
 };
 
-// 🔎 FloodFill 알고리즘!
+// 🔎 FloodFill 함수 (알고리즘)
 // 인자로 (사용자가 클릭한 x, y좌표, 클릭한 픽셀의 기존 색상 R, G, B)를 받는다.
-// 이 x,y 자표를 기준으로 같은 색상인 픽셀들을 전부 찾아서 현재 선택된 pickColor로 색칠하는 것이다.
+// 이 x,y 좌표를 기준으로 같은 색상인 픽셀들을 전부 찾아서 현재 선택된 pickColor로 색칠하는 것이다.
+// 시작 좌표에서부터 같은 색으로 연결된 영역을 맨 위에서부터 아래로 내려가며 좌우까지 탐색하면서 전부 현재 선택된 색으로 색칠
 let floodFill = function (startX, startY, startR, startG, startB) {
-  let nowPos, pixelPos; // 현재 탐색중인 좌표 [x, y].  &  RGBA 배열의 index 위치. (nowPos를 픽셀 데이터 배열에서 찾기 위해 계산된 숫자)
+  let nowPos, pixelPos; // 현재 탐색중인 좌표 [x, y].  &  RGBA 배열의 index 위치. (nowPos를 픽셀 데이터 배열(RGBA)에서 찾기 위해 계산된 숫자)
   let x, y; // 현재 flood fill이 진행중인 좌표
   let canGoLeft, canGoRight; // 좌우로 색칠할 수 있는지 상태를 기억하는 변수 (왼or오로 탐색을 확장할지 여부를 판단 )
   let drawingBoundLeft = drawStartX, // 색칠 가능 범위의 최소 x값 (좌측 경계)
@@ -164,48 +173,51 @@ let floodFill = function (startX, startY, startR, startG, startB) {
     drawingBoundRight = drawStartX + imageWidth - 1, // 색칠 가능 범위의 최대 x값 (오른쪽 경계)
     drawingBoundBottom = drawStartY + imageHeight - 1; // 색칠 가능 범위의 최대 y값 (아래쪽 경계)
 
-  // 탐색해야할 픽셀 목록 (일단 시작 위치를 넣고 시작)
+  // 색칠할 예정인 좌표들을 stack에 넣는다.
   let pixelStack = [[startX, startY]];
 
-  // 색칠해야할 픽셀이 남아있으면 계속 반복
   while (pixelStack.length) {
     nowPos = pixelStack.pop();
+    // 색칠할 좌표 하나 빼기
     x = nowPos[0];
     y = nowPos[1];
 
-    // 화면 기준 (x, y)위치를 색칠할건데, 색칠 정보가 useColorData 배열 안에 있어서 몇번째 픽셀 안에 있는지를 알아야 함
-    // useColorData는 [R,G,B,A,R,G,B,A,...]이렇게 되어있어서, 현재 canvas의 가로세로 안에서 몇번째 픽셀인지 구하기 위해 배열의 인덱스로 바꿔야 함
-    pixelPos = (y * canvasWidth + x) * 4; // [x, y]의 R값이 저장된 위치 index
+    // 화면 기준 (x, y)위치를 색칠할건데, 색칠 정보는 RGBA(1차원) 배열 안에 있으니, 2차원 좌표인 (x,y)를 1차원 인덱스로 바꾸어야 함
+    pixelPos = (y * canvasWidth + x) * 4; // R,G,B,A이나 *4를 해서 [x, y]의 R값이 저장된 위치 index를 구할 것
 
+    // 🎤 FloodFill은 현재 픽셀이 포함된 줄을 기준으로 쭉 위로 가면서 같은 색이 이어지는지를 먼저 확인해야 함.
+    // -> 그래야 정확하게 채울 시작점을 찾을 수 있음
     // 위로 올라가며 같은 색을 확인
     while (
       y >= drawingBoundTop &&
       matchStartColor(pixelPos, startR, startG, startB)
     ) {
-      // 아직 위로 올라갈 수 있고, 색이 같으면 계속 이동
-      y--;
-      pixelPos -= canvasWidth * 4;
+      // 한 줄씩 위로 올라가면서 pixelPos로 위로 이동해준다. (이때 한 줄은 canvasWidth만큼임)
+      y--; // y도 위로 한줄 이동
+      pixelPos -= canvasWidth * 4; // pixelPos로 위로 이동
     }
 
-    // 한줄씩 내려가며 색칠
+    // 위에서 정확하게 채울 시작점을 찾았으므로, 한줄씩 내려가며 같은 색인 픽셀들을 "색칠"
+    // y가 -경계에 있으므로 y+1, pixelPos + 1줄을 해준다.
     y++;
     pixelPos += canvasWidth * 4;
-    canGoLeft = false;
+    canGoLeft = false; // 좌우로 퍼질 준비
     canGoRight = false;
-
     while (
       y <= drawingBoundBottom &&
       matchStartColor(pixelPos, startR, startG, startB)
     ) {
-      // 아직 내려갈 수 있고, 색이 같으면 계속 이동
       y++;
       // 픽셀을 현재 선택된 색(pickColor)으로 채움
       colorPixel(pixelPos, pickColor.r, pickColor.g, pickColor.b);
 
-      // 왼쪽도 확장 가능한지 확인
+      // 내려오면서 매 줄마다 양 옆으로 확장 가능한지 확인
       if (x > drawingBoundLeft) {
+        // 왼쪽 픽셀도 같은 색이면
         if (matchStartColor(pixelPos - 4, startR, startG, startB)) {
           if (!canGoLeft) {
+            // canGoLeft로 중복 추가(방문) 방지.
+            // 다음에 탐색할 후보로 스택에 추가
             pixelStack.push([x - 1, y]);
             canGoLeft = true;
           }
@@ -214,11 +226,10 @@ let floodFill = function (startX, startY, startR, startG, startB) {
         }
       }
 
-      // 오른쪽도 확장 가능한지 확인
+      // 오른쪽
       if (x < drawingBoundRight) {
         if (matchStartColor(pixelPos + 4, startR, startG, startB)) {
           if (!canGoRight) {
-            // 스택에 추가 탐색이 필요한 픽셀 추가하기
             pixelStack.push([x + 1, y]);
             canGoRight = true;
           }
@@ -227,7 +238,7 @@ let floodFill = function (startX, startY, startR, startG, startB) {
         }
       }
 
-      // 다음 픽셀로 이동(한줄 아래로 이동)
+      // 다음 픽셀로 이동(한줄 아래로 이동하기 위해 index를 다음 행으로 이동)
       pixelPos += canvasWidth * 4;
     }
   }
@@ -249,9 +260,20 @@ let paintAt = function (startX, startY) {
 
   // FloodFill 알고리즘으로 색칠 시작! (현재 좌표 정보와 현재 색 정보 넣기)
   floodFill(startX, startY, r, g, b);
-  // 색칠 결과가 저장된 useColorsData를 기반으로 캔버스를 갱신해야 함
+  // 색칠 결과가 저장된 useColorsData를 기반으로 canvas를 갱신 (실제 canvas에 한 번에 반영)
   redraw();
 };
 
 // console.log(canvasWidth, canvasHeight);
 // console.log(drawStartX, drawStartY);
+
+// ✅ 결과물을 저장하는 로직
+const saveButton = document.querySelector("#saveButton");
+saveButton.addEventListener("click", () => {
+  // 1. canvas 내용을 데이터 URL로 변환
+  const imageData = canvas.toDataURL("image/png");
+  const downloadLink = document.createElement("a");
+  downloadLink.href = imageData;
+  downloadLink.download = "result.png";
+  downloadLink.click();
+});
