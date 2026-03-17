@@ -136,7 +136,8 @@ const matchOutlineColor = (
 // 🔎 pixelPos 위치의 픽셀을 칠할 수 있는지 아닌지 판단하는 함수
 let matchStartColor = function (
   pixelPos: number,
-  startColor: RGBColor
+  startColor: RGBColor,
+  startA: number
 ): boolean {
   // 외곽선 색 정보 가져오기
   let r = outlineData.data[pixelPos];
@@ -155,12 +156,15 @@ let matchStartColor = function (
   b = useColorsData.data[pixelPos + 2];
 
   // 현재 픽셀이 처음 클릭한 색과 같다면(같은 색끼리는 이어서 색칠해야 함) true 반환!
-  if (r === startColor.r && g === startColor.g && b === startColor.b) {
+  // 투명도(Alpha) 값도 일치해야 완전히 같은 색이라고 판단!
+  let a2 = useColorsData.data[pixelPos + 3];
+  if (r === startColor.r && g === startColor.g && b === startColor.b && a2 === startA) {
     return true;
   }
 
   // 현재 픽셀이 이미 새로 칠한 색이면(또 칠할 필요 없음) false 반환
-  if (r === pickColor.r && g === pickColor.g && b === pickColor.b) {
+  // 새로 칠한 색은 항상 불투명(a=255)이므로 a2===255 조건 추가
+  if (r === pickColor.r && g === pickColor.g && b === pickColor.b && a2 === 255) {
     return false;
   }
 
@@ -191,7 +195,8 @@ let floodFill = function (
   startY: number,
   startR: number,
   startG: number,
-  startB: number
+  startB: number,
+  startA: number
 ): void {
   let nowPos, pixelPos; // 현재 탐색중인 좌표 [x, y].  &  RGBA 배열의 index 위치. (nowPos를 픽셀 데이터 배열(RGBA)에서 찾기 위해 계산된 숫자)
   let x, y; // 현재 flood fill이 진행중인 좌표
@@ -218,7 +223,7 @@ let floodFill = function (
     // 위로 올라가며 같은 색을 확인
     while (
       y >= drawingBoundTop &&
-      matchStartColor(pixelPos, { r: startR, g: startG, b: startB })
+      matchStartColor(pixelPos, { r: startR, g: startG, b: startB }, startA)
     ) {
       // 한 줄씩 위로 올라가면서 pixelPos로 위로 이동해준다. (이때 한 줄은 canvasWidth만큼임)
       y--; // y도 위로 한줄 이동
@@ -233,7 +238,7 @@ let floodFill = function (
     canGoRight = false;
     while (
       y <= drawingBoundBottom &&
-      matchStartColor(pixelPos, { r: startR, g: startG, b: startB })
+      matchStartColor(pixelPos, { r: startR, g: startG, b: startB }, startA)
     ) {
       y++;
       // 픽셀을 현재 선택된 색(pickColor)으로 채움
@@ -243,7 +248,7 @@ let floodFill = function (
       if (x > drawingBoundLeft) {
         // 왼쪽 픽셀도 같은 색이면
         if (
-          matchStartColor(pixelPos - 4, { r: startR, g: startG, b: startB })
+          matchStartColor(pixelPos - 4, { r: startR, g: startG, b: startB }, startA)
         ) {
           if (!canGoLeft) {
             // canGoLeft로 중복 추가(방문) 방지.
@@ -259,7 +264,7 @@ let floodFill = function (
       // 오른쪽
       if (x < drawingBoundRight) {
         if (
-          matchStartColor(pixelPos + 4, { r: startR, g: startG, b: startB })
+          matchStartColor(pixelPos + 4, { r: startR, g: startG, b: startB }, startA)
         ) {
           if (!canGoRight) {
             pixelStack.push([x + 1, y]);
@@ -288,11 +293,18 @@ let paintAt = (pos: ClickPosition): void => {
     a = useColorsData.data[pixelPos + 3];
 
   // 색을 칠하지 않아야 하는 경우 check: 이미 같은색이거나 외곽선인 경우
-  if (r === pickColor.r && g === pickColor.g && b === pickColor.b) return;
-  if (matchOutlineColor(r, g, b, a)) return;
+  // a === 255 체크 추가: 투명한 배경(0,0,0,0)을 검은색으로 칠하려고 할 때 막히는 문제 해결
+  if (r === pickColor.r && g === pickColor.g && b === pickColor.b && a === 255) return;
+  // 클릭한 위치가 외곽선인지 판단할 때는 outlineData를 기준으로 확인해야 합니다.
+  // useColorsData의 값을 기준으로 하면, 사용자가 검은색으로 칠한 영역을 수정할 수 없게 됩니다.
+  let outlineR = outlineData.data[pixelPos],
+      outlineG = outlineData.data[pixelPos + 1],
+      outlineB = outlineData.data[pixelPos + 2],
+      outlineA = outlineData.data[pixelPos + 3];
+  if (matchOutlineColor(outlineR, outlineG, outlineB, outlineA)) return;
 
   // FloodFill 알고리즘으로 색칠 시작! (현재 좌표 정보와 현재 색 정보 넣기)
-  floodFill(x, y, r, g, b);
+  floodFill(x, y, r, g, b, a);
   // 색칠 결과가 저장된 useColorsData를 기반으로 canvas를 갱신 (실제 canvas에 한 번에 반영)
   redraw();
 };
