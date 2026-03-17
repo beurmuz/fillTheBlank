@@ -35,7 +35,7 @@ if (!context)
 // : canvas 요소 생성 -> 이미지 load -> 이벤트 추가
 const init = () => {
     // onlyLineImage.src = "images/jjanggu.png";
-    onlyLineImage.src = "images/jjanggu2.png";
+    onlyLineImage.src = "images/kitty.png";
     onlyLineImage.onload = () => {
         context.drawImage(onlyLineImage, drawStartX, drawStartY, imageWidth, imageHeight);
         // file에서 열었거나 CORS 설정이 안되어있는 경우 에러 처리를 해주어야 함

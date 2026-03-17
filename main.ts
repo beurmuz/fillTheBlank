@@ -44,7 +44,7 @@ if (!context) alert("Canvas를 이용할 수 없습니다.");
 // : canvas 요소 생성 -> 이미지 load -> 이벤트 추가
 const init = () => {
   // onlyLineImage.src = "images/jjanggu.png";
-  onlyLineImage.src = "images/jjanggu2.png";
+  onlyLineImage.src = "images/kitty.png";
   onlyLineImage.onload = () => {
     context.drawImage(
       onlyLineImage,
